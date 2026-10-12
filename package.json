@@ -1,0 +1,19 @@
+{
+  "name": "outliner",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local, offline outliner with statuses and tags",
+  "scripts": {
+    "start": "node server.js",
+    "service:install": "sh scripts/install-service.sh",
+    "service:uninstall": "sh scripts/uninstall-service.sh",
+    "service:restart": "launchctl kickstart -k gui/$(id -u)/local.outliner",
+    "service:log": "tail -f ~/Library/Logs/outliner.log",
+    "test": "node tests/run.js",
+    "test:invert": "node tests/run.js --invert"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.64.0"
+  },
+  "license": "MIT"
+}

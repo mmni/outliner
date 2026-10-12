@@ -1,0 +1,178 @@
+{
+  "version": 2,
+  "root": {
+    "id": "root",
+    "text": "",
+    "status": null,
+    "collapsed": false,
+    "children": [
+      {
+        "id": "a",
+        "text": "Mobile App",
+        "status": "idea",
+        "person": null,
+        "release": null,
+        "link": null,
+        "collapsed": false,
+        "children": [
+          {
+            "id": "a1",
+            "text": "Offline mode for the iOS app",
+            "status": "planned",
+            "person": "Sam",
+            "release": "v2099.03.06",
+            "link": "https://example.atlassian.net/browse/PROJ-101",
+            "collapsed": false,
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "b",
+        "text": "Data Platform",
+        "status": null,
+        "person": null,
+        "release": null,
+        "link": null,
+        "collapsed": false,
+        "children": [
+          {
+            "id": "b1",
+            "text": "Import pipeline for partner files",
+            "status": "in-progress",
+            "person": "Riley",
+            "release": "v2099.02.20",
+            "link": "https://example.atlassian.net/browse/PROJ-102",
+            "collapsed": false,
+            "children": [
+              {
+                "id": "b11",
+                "text": "Schema update for the import format",
+                "status": "testing",
+                "person": "Riley",
+                "release": "v2099.02.20",
+                "link": "https://example.atlassian.net/browse/PROJ-103",
+                "collapsed": false,
+                "children": []
+              },
+              {
+                "id": "b12",
+                "text": "Backend validation rules",
+                "status": "in-progress",
+                "person": "Riley",
+                "release": "v2099.02.20",
+                "link": "https://example.atlassian.net/browse/PROJ-104",
+                "collapsed": false,
+                "children": []
+              },
+              {
+                "id": "b13",
+                "text": "Reusable converter script",
+                "status": "in-progress",
+                "person": "Riley",
+                "release": "v2099.02.20",
+                "link": null,
+                "collapsed": true,
+                "children": [
+                  {
+                    "id": "b131",
+                    "text": "handle multi-part files",
+                    "status": null,
+                    "person": "Riley",
+                    "release": "v2099.02.20",
+                    "link": null,
+                    "collapsed": false,
+                    "children": []
+                  }
+                ]
+              },
+              {
+                "id": "b14",
+                "text": "Migration script for existing customers",
+                "status": "planned",
+                "person": "Riley",
+                "release": "v2099.02.20",
+                "link": null,
+                "collapsed": false,
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "b2",
+            "text": "Historical data backfill",
+            "status": "idea",
+            "person": null,
+            "release": null,
+            "link": null,
+            "collapsed": false,
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "c",
+        "text": "Tooling",
+        "status": null,
+        "person": null,
+        "release": null,
+        "link": null,
+        "collapsed": false,
+        "children": [
+          {
+            "id": "c1",
+            "text": "Shared lint config",
+            "status": null,
+            "person": null,
+            "release": null,
+            "link": null,
+            "collapsed": false,
+            "children": []
+          },
+          {
+            "id": "c2",
+            "text": "Build cache",
+            "status": "released",
+            "person": null,
+            "release": null,
+            "link": null,
+            "collapsed": false,
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "d",
+        "text": "Load Testing",
+        "status": null,
+        "person": null,
+        "release": null,
+        "link": null,
+        "collapsed": false,
+        "children": [
+          {
+            "id": "d1",
+            "text": "\"What runs in production now\"",
+            "status": "idea",
+            "person": "Alex",
+            "release": null,
+            "link": null,
+            "collapsed": false,
+            "children": []
+          },
+          {
+            "id": "d2",
+            "text": "Resource monitoring",
+            "status": null,
+            "person": null,
+            "release": null,
+            "link": null,
+            "collapsed": false,
+            "children": []
+          }
+        ]
+      }
+    ]
+  },
+  "scratch": []
+}
