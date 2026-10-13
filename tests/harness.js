@@ -80,6 +80,16 @@ async function startApp(data = fixture(), options = {}) {
       for (let i = 0; i < 40 && (await this.selected()) !== id; i++) await page.keyboard.press('j');
       if ((await this.selected()) !== id) throw new Error(`could not select ${id}`);
     },
+    // A second browser window on the same server. offline: it never hears about other windows' saves.
+    async openAnother({ offline = false } = {}) {
+      const other = await browser.newContext({ viewport: { width: 1300, height: 760 } });
+      const p2 = await other.newPage();
+      p2.on('pageerror', (e) => errors.push(`window 2: ${e.message}`));
+      if (offline) await p2.route('**/api/dev-reload', (route) => route.abort());
+      await p2.goto(url + '#/');
+      await p2.waitForSelector('#tree .text');
+      return p2;
+    },
     async close() {
       await browser.close();
       server.kill();

@@ -51,6 +51,11 @@ function backupOncePerDay() {
   if (!fs.existsSync(dest)) fs.copyFileSync(OUTLINE_FILE, dest);
 }
 
+// The outline's version. A save names the version it was based on, so a window holding an older
+// copy cannot silently replace newer work saved from another window.
+let revision = (() => { try { return String(fs.statSync(OUTLINE_FILE).mtimeMs); } catch { return '0'; } })();
+let writes = 0;
+
 function writeOutline(body) {
   const outline = JSON.parse(body);
   if (!outline || !outline.root || !Array.isArray(outline.root.children)) {
@@ -60,6 +65,7 @@ function writeOutline(body) {
   const tmp = `${OUTLINE_FILE}.tmp`;
   fs.writeFileSync(tmp, JSON.stringify(outline, null, 2));
   fs.renameSync(tmp, OUTLINE_FILE);
+  revision = `${Date.now()}-${++writes}`;
 }
 
 function readBody(req) {
@@ -111,11 +117,19 @@ const server = http.createServer(async (req, res) => {
   const { pathname } = new URL(req.url, `http://${req.headers.host}`);
   try {
     if (pathname === '/api/outline' && req.method === 'GET') {
-      res.writeHead(200, { 'Content-Type': CONTENT_TYPES['.json'], 'Cache-Control': 'no-store' });
+      res.writeHead(200, { 'Content-Type': CONTENT_TYPES['.json'], 'Cache-Control': 'no-store', 'X-Outline-Rev': revision });
       res.end(readOutline());
     } else if (pathname === '/api/outline' && req.method === 'PUT') {
-      writeOutline(await readBody(req));
-      res.writeHead(204).end();
+      const base = req.headers['if-match'];
+      const body = await readBody(req);
+      if (base && base !== revision) {
+        res.writeHead(409, { 'Content-Type': CONTENT_TYPES['.json'] }).end(JSON.stringify({ rev: revision }));
+        return;
+      }
+      writeOutline(body);
+      res.writeHead(200, { 'Content-Type': CONTENT_TYPES['.json'] }).end(JSON.stringify({ rev: revision }));
+      // Other open windows reload the outline when they have nothing unsaved of their own.
+      for (const client of reloadClients) client.write(`event: outline\ndata: ${revision}\n\n`);
     } else if (pathname === '/api/dev-reload') {
       res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store' });
       res.write(': connected\n\n');

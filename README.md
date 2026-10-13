@@ -58,8 +58,11 @@ same network, set `HOST=0.0.0.0`: before `npm start`, or when installing the ser
 `http://<its-ip>:4477`, and the server log lists the addresses it answers on.
 
 ⚠ There is no login. With `HOST=0.0.0.0`, anyone who can reach the port can read and overwrite the
-outline, and when two devices save, the last save wins for the whole file. Only do this on a network
-you trust.
+outline. Only do this on a network you trust.
+
+Several windows can be open at once. A save in one shows up in the others straight away, and a window
+holding an older copy cannot overwrite newer work: its save is refused, and it reloads the latest
+outline instead (its own unsaved change is dropped, and it says so).
 
 On a phone (screens up to 700px wide) the pills move to a line under the task text, placeholders
 for an unset person, release, status or link appear only on the row being edited, and the sidebar

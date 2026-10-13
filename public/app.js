@@ -294,12 +294,46 @@ function forEachNode(fn) {
 /* ==========================================================================
    Persistence
    ========================================================================== */
+let serverRev = null;       // the version of the outline this window last loaded or saved
+let saving = null;         // the save in flight, so saves never overlap
+let saveAgain = false;
+let remotePending = null;  // a version another window saved while this one was busy
+
 async function load() {
   const res = await fetch('/api/outline');
+  serverRev = res.headers.get('X-Outline-Rev');
   doc = await res.json();
   if (!Array.isArray(doc.scratch)) doc.scratch = [];
   reindex();
   if (migrateOutline()) scheduleSave();
+}
+
+// Replaces this window's outline with the saved one. Undo history is dropped: it describes the old copy.
+async function adoptRemote(message, res = null) {
+  res = res || await fetch('/api/outline');
+  serverRev = res.headers.get('X-Outline-Rev');
+  doc = await res.json();
+  if (!Array.isArray(doc.scratch)) doc.scratch = [];
+  undoStack.length = 0;
+  remotePending = null;
+  if (isEditable(document.activeElement)) document.activeElement.blur();
+  render();
+  setSaveState('saved');
+  if (message) flashKeybar(message);
+}
+
+// Picks up a save made in another window, unless this window has something of its own in progress.
+function onRemoteSave(rev) {
+  if (!rev || rev === serverRev) return;
+  if (saveState === 'saved' && !saving && !isEditable(document.activeElement)) adoptRemote('Updated from another window');
+  else remotePending = rev;
+}
+
+async function checkRemote() {
+  if (saveState !== 'saved' || saving || isEditable(document.activeElement)) return;
+  const res = await fetch('/api/outline');
+  const rev = res.headers.get('X-Outline-Rev');
+  if (rev && serverRev && rev !== serverRev) adoptRemote('Updated from another window', res);
 }
 
 function scheduleSave() {
@@ -310,18 +344,36 @@ function scheduleSave() {
 
 async function save() {
   clearTimeout(saveTimer);
+  if (saving) {
+    saveAgain = true;
+    return saving;
+  }
   setSaveState('saving');
-  try {
-    const res = await fetch('/api/outline', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(doc),
-    });
-    if (!res.ok) throw new Error(await res.text());
-    if (saveState === 'saving') setSaveState('saved');
-  } catch (err) {
-    console.error(err);
-    setSaveState('error');
+  saving = (async () => {
+    try {
+      const headers = { 'Content-Type': 'application/json' };
+      if (serverRev) headers['If-Match'] = serverRev;
+      const res = await fetch('/api/outline', { method: 'PUT', headers, body: JSON.stringify(doc) });
+      if (res.status === 409) {
+        // Another window saved first: keep its work and show it here instead.
+        saveAgain = false;
+        await adoptRemote('Changed in another window — reloaded it here; your last change in this window was not saved');
+        return;
+      }
+      if (!res.ok) throw new Error(await res.text());
+      if (res.status === 200) serverRev = (await res.json()).rev ?? serverRev;
+      if (remotePending === serverRev) remotePending = null; // that announcement was this window's own save
+      if (saveState === 'saving') setSaveState('saved');
+    } catch (err) {
+      console.error(err);
+      setSaveState('error');
+    }
+  })();
+  await saving;
+  saving = null;
+  if (saveAgain) {
+    saveAgain = false;
+    await save();
   }
 }
 
@@ -1996,6 +2048,10 @@ function onNavKeydown(e) {
 }
 
 // Editing a row selects it; the ring shows only while nothing is being edited.
+// A window brought back to the front checks whether another one saved meanwhile.
+window.addEventListener('focus', () => checkRemote());
+document.addEventListener('visibilitychange', () => { if (!document.hidden) checkRemote(); });
+
 // Edit mode means the cursor is in a row's text or the zoomed-in title; anything else is navigate.
 const touchScreen = matchMedia('(hover: none)');
 const modeBadge = $('#mode-badge');
@@ -2006,6 +2062,7 @@ function syncMode() {
   document.body.classList.toggle('editing', editing);
   modeBadge.textContent = editing ? 'Edit' : 'Navigate';
   modeBadge.dataset.mode = editing ? 'edit' : 'navigate';
+  if (!editing && remotePending && remotePending !== serverRev && saveState === 'saved' && !saving) adoptRemote('Updated from another window');
 }
 
 document.addEventListener('focusin', (e) => {
@@ -2415,6 +2472,7 @@ document.addEventListener('keydown', (e) => {
    ========================================================================== */
 function connectDevReload() {
   const es = new EventSource('/api/dev-reload');
+  es.addEventListener('outline', (e) => onRemoteSave(e.data));
   es.onmessage = async (e) => {
     if (e.data.endsWith('.css')) {
       const link = document.querySelector('link[rel="stylesheet"]');
