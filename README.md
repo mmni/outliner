@@ -1,7 +1,7 @@
 # Outliner
 
 A personal, offline outliner in the style of Dynalist. Items nest freely and carry `#tags` and a
-status: idea, planned, in-progress, testing or released.
+status: idea, planned, in-progress, under review, testing or released.
 
 ```bash
 npm start            # http://localhost:4477
@@ -95,13 +95,17 @@ row's ring is blue while navigating and green while editing.
 - **Ticket link:** paste a Jira URL into a task to attach it. It shows as a chip with the ticket key
   right after the text; click it to open the ticket. ⌥J or right-click the chip edits or removes it,
   and once one Jira link exists a bare key like `PROJ-123` is enough. One link per task.
-- Click the status pill (shown on hover) or press ⌥1–5 to set a status, and ⌥0 to clear it.
-- Zooming into a task is switched off (`ZOOM_ENABLED` at the top of `public/app.js`); the bullet is a
-  drag handle only.
+- Click the status pill (shown on hover) or press ⌥1–6 to set a status, and ⌥0 to clear it.
+- **Zoom into a task:** ⌘-click its text or bullet (Ctrl-click off a Mac), or `]` on the selected row.
+  A plain click never zooms. The breadcrumb, browser Back or `[` zoom out. Holding ⌘ shows a zoom-in
+  pointer. `ZOOM_ENABLED` at the top of `public/app.js` switches zooming off entirely.
 - Drag a bullet to move an item with its children. Dropping on the top third of a row puts it above, the bottom third below, and the middle makes it the row's first child. Esc cancels.
 - The filter box combines words, `#tags`, `status:<id>`, `release:<name>`, `person:<name>` and `link:<text>`
   (lower-case, `_` for spaces — e.g. `#backend person:alex`). `none` matches an unset value; `link:any` finds tasks with a link.
-  It keeps matching items' parents visible for context.
+  It keeps matching items' parents visible for context. Clicking entries in the sidebar adds them to
+  the filter, and clicking again removes them: different groups must all match (a release **and** a
+  person **and** a status), while values within one group are alternatives (Idea **or** Planned; the
+  same for tags).
 - The panel button (top left) or ⌘\ hides and shows the sidebar; the choice is remembered.
 - The sun/moon button (top right) flips light/dark. It follows the system setting until you flip it once.
 - Pasting several lines creates one item per line and strips leading `-`, `*` and `1.` markers.

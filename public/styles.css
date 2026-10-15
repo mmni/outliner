@@ -84,6 +84,7 @@
   --status-idea-bg:        #f6f0ff;  --status-idea-pill:        #e7dafe;  --status-idea-fg:        #6b3fc4;
   --status-planned-bg:     #eef5ff;  --status-planned-pill:     #d6e6ff;  --status-planned-fg:     #1f5bbf;
   --status-in-progress-bg: #fff6e6;  --status-in-progress-pill: #ffe4b3;  --status-in-progress-fg: #9a5b00;
+  --status-review-bg:      #fdf0f6;  --status-review-pill:      #f9d3e4;  --status-review-fg:      #a3195b;
   --status-testing-bg:     #e9faf9;  --status-testing-pill:     #c8f0ed;  --status-testing-fg:     #0d7a72;
   --status-released-bg:    #edf9ef;  --status-released-pill:    #cdeed3;  --status-released-fg:    #23803a;
 }
@@ -117,6 +118,7 @@
   --status-idea-bg:        rgba(179, 146, 240, 0.13);  --status-idea-pill:        rgba(179, 146, 240, 0.28);  --status-idea-fg:        #cdb6ff;
   --status-planned-bg:     rgba(108, 182, 255, 0.12);  --status-planned-pill:     rgba(108, 182, 255, 0.26);  --status-planned-fg:     #9ccbff;
   --status-in-progress-bg: rgba(224, 168, 73, 0.13);   --status-in-progress-pill: rgba(224, 168, 73, 0.28);   --status-in-progress-fg: #f2c46d;
+  --status-review-bg:      rgba(240, 120, 170, 0.12);  --status-review-pill:      rgba(240, 120, 170, 0.26);  --status-review-fg:      #f59ac0;
   --status-testing-bg:     rgba(63, 193, 176, 0.12);   --status-testing-pill:     rgba(63, 193, 176, 0.26);   --status-testing-fg:     #6fe0d0;
   --status-released-bg:    rgba(87, 194, 122, 0.12);   --status-released-pill:    rgba(87, 194, 122, 0.26);   --status-released-fg:    #82dc9d;
 
@@ -333,6 +335,9 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .item.has-children.collapsed > .row > .bullet { background: var(--border); }
 .bullet:hover::before { background: var(--fg); }
 .bullet { cursor: grab; }
+body.mod-held #tree .bullet,
+body.mod-held #tree .text,
+body.mod-held #tree .row-fill { cursor: zoom-in; }
 
 /* Drag to reorder */
 body.dragging, body.dragging * { cursor: grabbing !important; user-select: none; }
@@ -403,6 +408,8 @@ body.dragging .item:not([data-status]) > .row .status { opacity: 0 !important; }
 .item[data-status="planned"]     > .row .status { background: var(--status-planned-pill); color: var(--status-planned-fg); }
 .item[data-status="in-progress"] > .row { background: var(--status-in-progress-bg); }
 .item[data-status="in-progress"] > .row .status { background: var(--status-in-progress-pill); color: var(--status-in-progress-fg); }
+.item[data-status="review"]      > .row { background: var(--status-review-bg); }
+.item[data-status="review"]      > .row .status { background: var(--status-review-pill); color: var(--status-review-fg); }
 .item[data-status="testing"]     > .row { background: var(--status-testing-bg); }
 .item[data-status="testing"]     > .row .status { background: var(--status-testing-pill); color: var(--status-testing-fg); }
 .item[data-status="released"]    > .row { background: var(--status-released-bg); }
@@ -520,6 +527,7 @@ body.dragging .item:not([data-person]) > .row .field[data-field="person"] { opac
 .release-bar span[data-status="idea"]        { background: var(--status-idea-fg); }
 .release-bar span[data-status="planned"]     { background: var(--status-planned-fg); }
 .release-bar span[data-status="in-progress"] { background: var(--status-in-progress-fg); }
+.release-bar span[data-status="review"]      { background: var(--status-review-fg); }
 .release-bar span[data-status="testing"]     { background: var(--status-testing-fg); }
 .release-bar span[data-status="released"]    { background: var(--status-released-fg); }
 
@@ -757,6 +765,7 @@ dt.group:first-child { margin-top: 0; }
 .swatch[data-status="idea"]        { background: var(--status-idea-pill);        border-color: transparent; }
 .swatch[data-status="planned"]     { background: var(--status-planned-pill);     border-color: transparent; }
 .swatch[data-status="in-progress"] { background: var(--status-in-progress-pill); border-color: transparent; }
+.swatch[data-status="review"]      { background: var(--status-review-pill);      border-color: transparent; }
 .swatch[data-status="testing"]     { background: var(--status-testing-pill);     border-color: transparent; }
 .swatch[data-status="released"]    { background: var(--status-released-pill);    border-color: transparent; }
 

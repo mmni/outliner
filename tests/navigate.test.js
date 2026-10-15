@@ -14,12 +14,12 @@ module.exports = async (check) => {
 
     await app.select('c2');
     const start = find((await app.file()).root, 'c2').status;
-    const cycle = [null, 'idea', 'planned', 'in-progress', 'testing', 'released'];
+    const cycle = [null, 'idea', 'planned', 'in-progress', 'review', 'testing', 'released'];
     await key('s');
     const one = find((await app.file()).root, 'c2').status;
-    for (let i = 0; i < 5; i++) await key('s');
-    const six = find((await app.file()).root, 'c2').status;
-    check('s steps to the next status, and six presses come back to the start', one === cycle[(cycle.indexOf(start) + 1) % 6] && six === start, `${start} → ${one} → ${six}`);
+    for (let i = 0; i < cycle.length - 1; i++) await key('s');
+    const full = find((await app.file()).root, 'c2').status;
+    check('s steps to the next status, and a full cycle comes back to the start', one === cycle[(cycle.indexOf(start) + 1) % cycle.length] && full === start, `${start} → ${one} → ${full}`);
 
     await key('/'); await type('import'); await key('Enter'); await key('p');
     let f = await app.file();

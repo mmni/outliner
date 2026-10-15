@@ -7,12 +7,14 @@ const STATUSES = [
   { id: 'idea', label: 'Idea' },
   { id: 'planned', label: 'Planned' },
   { id: 'in-progress', label: 'In progress' },
+  { id: 'review', label: 'Under review' },
   { id: 'testing', label: 'Testing' },
   { id: 'released', label: 'Released' },
 ];
 const SAVE_DELAY_MS = 400;
-// Zooming into a task (bullet click, ] / [, zoomed URLs) is switched off; true brings it all back.
-const ZOOM_ENABLED = false;
+// Zooming into a task: a ⌘-click (Ctrl-click elsewhere) on it, ] / [, the breadcrumb or a #/<id> link.
+// A plain click never zooms, so it cannot happen by accident; false switches zooming off entirely.
+const ZOOM_ENABLED = true;
 const MAX_STYLED_LEVEL = 4; // levels below this share the last level's style
 const TAG_RE = /(^|\s)#([\p{L}\p{N}_\-\/.]*[\p{L}\p{N}_])/gu;
 const IS_MAC = /Mac|iPhone|iPad/.test(navigator.userAgent);
@@ -43,7 +45,7 @@ const NAV_SHORTCUTS = [
   ['r / R', 'Next / previous release'],
   [`${ALT} P / R / J`, 'Person, release or link picker'],
   ['l', 'Open the ticket link'],
-  ...(ZOOM_ENABLED ? [['] / [', 'Zoom in / out']] : []),
+  ...(ZOOM_ENABLED ? [[`${MOD} click`, 'Zoom into a task'], ['] / [', 'Zoom in / out']] : []),
   ['/', 'Search; Enter keeps, Esc cancels'],
   ['n / N', 'Next / previous search match'],
   ['f', 'Filter box'],
@@ -73,7 +75,7 @@ const EDIT_SHORTCUTS = [
   ['Drag •', 'Move item with the mouse'],
   [`${MOD} ↑/↓`, 'Collapse / expand'],
   ...(ZOOM_ENABLED ? [[`${MOD} ] / [`, 'Zoom in / out']] : []),
-  [`${ALT} 1–5 / 0`, 'Set / clear status'],
+  [`${ALT} 1–6 / 0`, 'Set / clear status'],
   [`${ALT} P / R / J`, 'Person, release or link picker'],
   [`${MOD} ⇧ ⌫`, 'Delete with children'],
   [`${MOD} \\`, 'Show / hide sidebar'],
@@ -412,7 +414,7 @@ function matches(node, q) {
   const text = node.text.toLowerCase();
   const tags = tagsOf(node.text);
   return q.words.every((w) => text.includes(w))
-    && q.tags.every((t) => tags.includes(t))
+    && (q.tags.length === 0 || q.tags.some((t) => tags.includes(t)))
     && (q.statuses.length === 0 || q.statuses.includes(node.status || 'none'))
     && Object.keys(FIELDS).every((f) => q[f].length === 0 || q[f].includes(norm(fieldValue(node, f) || 'none')))
     && q.link.every((t) => (t === 'none' ? !node.link : t === 'any' ? !!node.link : (node.link || '').toLowerCase().includes(t)));
@@ -460,9 +462,7 @@ function rowHtml(node, editable) {
   return `<div class="row">
       <button class="toggle" tabindex="-1" type="button">▼</button>
       ${editable
-        ? (ZOOM_ENABLED
-          ? `<a class="bullet" href="#/${node.id}" tabindex="-1" draggable="false" title="Click to zoom, drag to move"></a>`
-          : '<span class="bullet" title="Drag to move"></span>')
+        ? `<span class="bullet" title="${ZOOM_ENABLED ? `${MOD}-click to zoom in, drag to move` : 'Drag to move'}"></span>`
         : '<span class="bullet" title="Open in the outline"></span>'}
       <div class="text"${editable ? ' contenteditable="plaintext-only" spellcheck="false"' : ''}>${highlight(node.text)}</div>
       <span class="meta">
@@ -979,12 +979,9 @@ function openInOutline(id) {
   pendingFocus = id;
   query = '';
   els.search.value = '';
-  const parent = parentOf(id);
-  if (!ZOOM_ENABLED) {
-    // Without zoom the task is shown in the full outline, so its folded parents open.
-    for (const a of ancestorsOf(id)) if (a.id !== 'root' && a.collapsed) { a.collapsed = false; scheduleSave(); }
-  }
-  const hash = parent.id === 'root' || !ZOOM_ENABLED ? '#/' : `#/${parent.id}`;
+  // The task is shown in the full outline, so its folded parents open.
+  for (const a of ancestorsOf(id)) if (a.id !== 'root' && a.collapsed) { a.collapsed = false; scheduleSave(); }
+  const hash = '#/';
   if (location.hash === hash) applyHash(); else location.hash = hash;
 }
 
@@ -1145,8 +1142,6 @@ els.releases.addEventListener('click', (e) => {
     openFieldMenu(pill.dataset.field, id, pill);
   } else if (e.target.closest('.tag')) {
     setQuery(`#${e.target.closest('.tag').dataset.tag}`);
-  } else if (ZOOM_ENABLED && e.target.closest('.text, .bullet, .row-fill')) {
-    openInOutline(id);
   }
 });
 
@@ -1434,7 +1429,7 @@ function onTextKeydown(e) {
   } else if (mod && key === '[') {
     e.preventDefault();
     if (zoomId !== 'root') zoomTo(parentOf(zoomId).id);
-  } else if (e.altKey && /^Digit[0-5]$/.test(e.code)) {
+  } else if (e.altKey && /^Digit[0-6]$/.test(e.code)) {
     e.preventDefault();
     const n = Number(e.code.slice(5));
     setStatus(id, n === 0 ? null : STATUSES[n - 1].id);
@@ -1495,6 +1490,12 @@ els.tree.addEventListener('click', (e) => {
   const item = e.target.closest('.item');
   if (!item) return;
   const id = item.dataset.id;
+  if ((IS_MAC ? e.metaKey : e.ctrlKey) && e.target.closest('.text, .bullet, .row-fill')) {
+    e.preventDefault();
+    cursorHint = 0;
+    zoomTo(id);
+    return;
+  }
 
   if (e.target.closest('.toggle')) {
     const node = nodeOf(id);
@@ -1540,6 +1541,14 @@ els.title.addEventListener('blur', () => renderBreadcrumb());
 /* ==========================================================================
    Sidebar, search, global keys
    ========================================================================== */
+// Adds a filter token, or removes it when present. Groups combine with AND, values within a group with OR.
+function toggleToken(q, token) {
+  const tokens = q.split(/\s+/).filter(Boolean);
+  const i = tokens.findIndex((t) => t.toLowerCase() === token.toLowerCase());
+  if (i === -1) tokens.push(token); else tokens.splice(i, 1);
+  return tokens.join(' ');
+}
+
 function setQuery(q) {
   query = q;
   els.search.value = q;
@@ -1560,7 +1569,7 @@ els.search.addEventListener('keydown', (e) => {
 document.querySelector('#sidebar').addEventListener('click', (e) => {
   const btn = e.target.closest('button[data-query]');
   if (!btn) return;
-  setQuery(btn.classList.contains('active') ? '' : btn.dataset.query);
+  setQuery(toggleToken(query, btn.dataset.query));
 });
 
 els.addItem.addEventListener('click', () => addChildToZoom());
@@ -2000,12 +2009,12 @@ function onNavKeydown(e) {
     if (id && outline) { cursorHint = 0; zoomTo(id); }
   } else if (mod && k === '[') {
     if (outline && zoomId !== 'root') { cursorId = zoomId; zoomTo(parentOf(zoomId).id); }
-  } else if (mod || (e.altKey && !['KeyP', 'KeyR', 'KeyJ'].includes(e.code) && !/^Digit[0-5]$/.test(e.code))) {
+  } else if (mod || (e.altKey && !['KeyP', 'KeyR', 'KeyJ'].includes(e.code) && !/^Digit[0-6]$/.test(e.code))) {
     handled = false; // leave other shortcuts to the browser
   } else if (e.altKey) {
     if (!id) return;
     const row = rowEl(id);
-    if (/^Digit[0-5]$/.test(e.code)) {
+    if (/^Digit[0-6]$/.test(e.code)) {
       const n = Number(e.code.slice(5));
       navChange(() => setStatus(id, n === 0 ? null : STATUSES[n - 1].id));
     } else if (e.code === 'KeyJ') openLinkMenu(id, row.querySelector('.link'));
@@ -2408,6 +2417,11 @@ els.moveMenu.addEventListener('keydown', (e) => {
 
 setPane('outline');
 
+const syncModHeld = (e) => document.body.classList.toggle('mod-held', ZOOM_ENABLED && (IS_MAC ? e.metaKey : e.ctrlKey));
+document.addEventListener('keydown', syncModHeld);
+document.addEventListener('keyup', syncModHeld);
+window.addEventListener('blur', () => document.body.classList.remove('mod-held'));
+
 /* ==========================================================================
    Theme — follows the system until flipped, then remembers the choice
    ========================================================================== */
@@ -2451,11 +2465,13 @@ function toggleSidebar() {
 
 sidebarToggle.addEventListener('click', toggleSidebar);
 
-// On a narrow screen, a tap outside the open sidebar, or on one of its filters, closes it.
+// On a narrow screen, a tap outside the open sidebar closes it.
 document.addEventListener('click', (e) => {
   if (!narrowScreen.matches || document.documentElement.dataset.sidebar === 'hidden') return;
   if (sidebarToggle.contains(e.target)) return;
-  if (!$('#sidebar').contains(e.target) || e.target.closest('#sidebar button[data-query]')) setSidebarHidden(true);
+  // Filters stay open so several can be picked; a tap outside closes the sidebar.
+  // The event path, not the target: picking a filter redraws the list and detaches the button tapped.
+  if (!e.composedPath().includes($('#sidebar'))) setSidebarHidden(true);
 });
 sidebarToggle.title = `${document.documentElement.dataset.sidebar === 'hidden' ? 'Show' : 'Hide'} sidebar (${MOD} \\)`;
 

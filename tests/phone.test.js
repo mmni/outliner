@@ -13,6 +13,11 @@ module.exports = async (check) => {
     check('nothing scrolls sideways', (await page.evaluate(() => document.documentElement.scrollWidth)) <= 390);
     await page.tap('#tree .item[data-id="b14"] > .row > .text');
     check('a tap on task text edits it', await page.evaluate(() => document.activeElement.classList.contains('text')));
+    await page.tap('#sidebar-toggle'); await page.waitForTimeout(300);
+    await page.tap('#sidebar button[data-query="status:idea"]'); await page.waitForTimeout(300);
+    check('picking a filter keeps the sidebar open for the next one', (await page.evaluate(() => document.documentElement.dataset.sidebar)) !== 'hidden');
+    await page.tap('#main', { position: { x: 380, y: 600 } }); await page.waitForTimeout(300);
+    check('a tap outside closes it', (await page.evaluate(() => document.documentElement.dataset.sidebar)) === 'hidden');
     check('no console errors (phone)', app.errors.length === 0, app.errors.join('; '));
   } finally {
     await app.close();
